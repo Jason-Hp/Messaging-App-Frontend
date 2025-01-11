@@ -2,14 +2,16 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useNavigate } from "react-router-dom/dist";
 import axios from "axios";
+import Error from "./error";
 
 const Search = () => {
-    const [searchParams] = useSearchParams()
-    const [results, setResults] = useState([])
-    const [error, setError] = useState(null)
+    const [searchParams, setSearchParams] = useSearchParams();
+    const [results, setResults] = useState([]);
+    const [error, setError] = useState(null);
+    const [search, setSearch] = useState("")
 
-    const query = searchParams.get("username")
-    const navigate = useNavigate()
+    const query = searchParams.get("username");
+    const navigate = useNavigate();
 
     useEffect(() => {
         const fetchResults = async () => {
@@ -17,11 +19,11 @@ const Search = () => {
                 const res = await axios.get(`http://localhost:3000/api/results`, {
                     params: { username: query },
                 });
-                setResults(res.data.data); 
+                setResults(res.data.data);
                 setError(null);
             } catch (err) {
                 setError(err.response?.data?.message || "Failed to fetch search results.");
-                setResults([])
+                setResults([]);
             }
         };
 
@@ -30,30 +32,50 @@ const Search = () => {
         }
     }, [query]);
 
+    const handleSearchChange = (e) => {
+        setSearch(e.target.value);
+    };
 
-    const onClick = async (item)=>{
-
-        try{
-            await axios.post("http://localhost:3000/api/chats",{
-                title:item.username,
-                contactId:item.id,
-              })
-              setError(null)
-              setResults([])
-              navigate("/")
+    const handleSearchSubmit = (e) => {
+        e.preventDefault();
+        if (search.trim()) {
+            setSearchParams({ username: search.trim() })
+            setSearch("")
         }
-        catch(error){
+    };
+
+    const onClick = async (item) => {
+        try {
+            await axios.post("http://localhost:3000/api/chats", {
+                title: item.username,
+                contactId: item.id,
+            });
+            setError(null);
+            setResults([]);
+            navigate("/");
+        } catch (error) {
             setError(error.response?.data?.message || "Create new chat failed. Try again.");
         }
-    }
+    };
 
     return (
         <div>
-            {error && <p style={{ color: "red" }}>{error}</p>}
-            <h2>Number of results({results.length})</h2>
+            {error && <Error error={error}/>}
+            <form onSubmit={handleSearchSubmit}>
+                <input
+                    type="text"
+                    value={search}
+                    onChange={handleSearchChange}
+                    placeholder="Search usernames"
+                />
+                <button type="submit">Search</button>
+            </form>
+            <h2>Number of results ({results.length})</h2>
             <ul>
                 {results.map((item) => (
-                    <li key={item.id} onClick={()=>onClick(item)}>{item.username}</li>
+                    <li key={item.id} onClick={() => onClick(item)}>
+                        {item.username}
+                    </li>
                 ))}
             </ul>
         </div>

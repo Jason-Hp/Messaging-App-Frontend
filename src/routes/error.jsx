@@ -5,14 +5,14 @@ const Error = ({ error }) => {
       return (
         <ul>
           {error.map((err, index) => (
-            <li key={index}>{err}</li>
+            <li key={index} style={{color:"red"}}>{err}</li>
           ))}
         </ul>
       );
     } else {
       return (
         <ul>
-          <li>{error}</li>
+          <li style={{color:"red"}}>{error}</li>
         </ul>
       );
     }

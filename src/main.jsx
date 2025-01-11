@@ -5,7 +5,7 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import MainPage from "./routes/MainPage"
 import Login from "./routes/Login"
 import Register from "./routes/Register"
-
+import axios from "axios"
 const router = createBrowserRouter([
   {
     path: "/",
@@ -20,6 +20,8 @@ const router = createBrowserRouter([
     element:<Register />,
   },
 ]);
+
+axios.defaults.withCredentials = true;
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

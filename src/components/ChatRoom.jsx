@@ -1,27 +1,22 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 import Error from "../routes/error";
 
-
-const ChatRoom = ({ chatRoom,socket }) => {
+const ChatRoom = ({ chatRoom, socket }) => {
   const [messages, setMessages] = useState([]);
   const [error, setError] = useState(null);
   const [user, setUser] = useState(null);
   const [mess, setMess] = useState("");
-  
-
+  const [file, setFile] = useState(null);
 
   useEffect(() => {
-  
     socket.on(`message-${chatRoom}`, (message) => {
-      if (message.mode == "create"){
+      if (message.mode === "create") {
         setMessages((prevMessages) => [...prevMessages, message]);
-      }else{
+      } else {
         setMessages((prevMessages) => prevMessages.filter((msg) => msg.id !== message.msgId));
       }
-      
     });
-
 
     async function fetching() {
       try {
@@ -40,35 +35,55 @@ const ChatRoom = ({ chatRoom,socket }) => {
         socket.disconnect();
       }
     };
-  }, [chatRoom,socket]);
+  }, [chatRoom, socket]);
 
   const handleMessageChange = (e) => {
     setMess(e.target.value);
   };
 
+  const handleFileChange = (e) => {
+    setFile(e.target.files[0]); 
+  };
+
   const handleMessageSubmit = async (e) => {
     e.preventDefault();
+    
+    const formData = new FormData();
+    formData.append("message", mess);
+    if (file) {
+      formData.append("file", file); 
+    }
+
     try {
-      await axios.post(`http://localhost:3000/api/chats/${chatRoom}/messages`, {
-        message: mess,
+      const res = await axios.post(`http://localhost:3000/api/chats/${chatRoom}/messages`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data", 
+        },
       });
-      const messageSent = { message: mess, date: new Date().toLocaleString(), userid: user, mode: "create", msgId:null,chatRoom };
-   
+
+      const messageSent = { 
+        message: mess, 
+        date: new Date().toLocaleString(), 
+        userid: user, 
+        mode: "create", 
+        msgId: null, 
+        file: res.data.filePath, 
+        chatRoom 
+      };
+
       socket.emit("message", messageSent);
-      //I think the socket listener above shld alr do the below
-      //setMessages((prevMessages) => [...prevMessages, messageSent]);
     } catch (err) {
       setError(err.response.data.message || "Cannot send message");
     }
-    setMess("");
+    setMess(""); 
+    
   };
 
   const onClickDelete = async (id) => {
     try {
       await axios.delete(`http://localhost:3000/api/chats/${chatRoom}/messages/${id}`);
-      const messageSent = { message: mess, date: new Date().toLocaleString(), userid: user, mode: "delete", msgId:id,chatRoom };
-      socket.emit("message", messageSent);
-
+      const messageDeleted = { message: mess, date: new Date().toLocaleString(), userid: user, mode: "delete", msgId: id, file: null ,chatRoom };
+      socket.emit("message", messageDeleted);
     } catch (err) {
       setError(err.response.data.message || "Cannot delete message");
     }
@@ -83,10 +98,25 @@ const ChatRoom = ({ chatRoom,socket }) => {
             <li
               key={message.id}
               className={`p-2 rounded ${message.userid === user ? "bg-green-200 ml-auto max-w-xs" : "bg-gray-200 mr-auto max-w-xs"}`}
-              style={{
-                textAlign: message.userid === user ? "right" : "left",
-              }}
+              style={{ textAlign: message.userid === user ? "right" : "left" }}
             >
+           
+              {message.file && (
+                <div className="file-preview">
+                  {message.file.endsWith('.jpg') || message.file.endsWith('.png') || message.file.endsWith('.jpeg')?(
+                    <img src={`http://localhost:3000/${message.file}`} alt="image" className="max-w-full h-auto rounded" />
+                  ):(
+                    <div>
+                      Download: 
+                      <a href={`http://localhost:3000/${message.file}`} target="_blank" className="text-blue-600 hover:text-blue-800 underline">
+                      {message.file.split('/').pop()}
+                      </a>
+                    </div>
+
+                  )}
+                </div>
+              )}
+  
               <p>{message.message}</p>
               <p className="text-sm text-gray-500">{message.date}</p>
               {message.userid === user && (
@@ -108,6 +138,12 @@ const ChatRoom = ({ chatRoom,socket }) => {
           onChange={handleMessageChange}
           placeholder="Send message"
           className="w-full px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+        />
+        <input
+          type="file"
+          name="file"
+          id="file"
+          onChange={handleFileChange}
         />
         <button
           type="submit"

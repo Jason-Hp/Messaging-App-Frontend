@@ -6,6 +6,7 @@ import MainPage from "./routes/MainPage"
 import Login from "./routes/Login"
 import Register from "./routes/Register"
 import axios from "axios"
+import Search from './routes/search';
 const router = createBrowserRouter([
   {
     path: "/",
@@ -19,6 +20,10 @@ const router = createBrowserRouter([
     path: "/register",
     element:<Register />,
   },
+  {
+    path:"/search",
+    element:<Search />
+  }
 ]);
 
 axios.defaults.withCredentials = true;
